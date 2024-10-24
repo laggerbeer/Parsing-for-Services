@@ -1,0 +1,33 @@
+import csv  # Библиотека для обработки csv файлов
+import requests  # Библиотека для работы с HTTP запросами
+from bs4 import BeautifulSoup as bs  # Библиотека для парсинга HTML/XML документов
+import pandas as pd  # Библиотека для анализа данных
+
+URL_TEMPLATE = "https://www.deutschebank.co.in/en/cards.html"  # URL адрес сайта, который будет парситься
+FILE_NAME = "test.csv"  # Название файла-результата
+
+def parse(url=URL_TEMPLATE):
+    result_list = {'Название': [], 'Описание': []}  # Словарь, который будет в результате реализован в виде csv файла
+    r = requests.get(url)  # GET запрос на сайт по url
+    soup = bs(r.text, "html.parser")  # передаем HTML-документ в конструктор класса BeautifulSoup()
+    
+    # Находим все элементы с классом "teaser"
+    teasers = soup.find_all(class_='teaser')  # Используем функцию find_all для поиска нужной информации в html коде
+    
+    for teaser in teasers:
+        title_tag = teaser.find('span', class_='text-color--table01')
+        description_tag = teaser.find('p')
+
+        if title_tag and description_tag:
+            result_list['Название'].append(title_tag.get_text(strip=True))  # Добавляем название карты
+            result_list['Описание'].append(description_tag.get_text(strip=True))  # Добавляем описание карты
+
+    return result_list  # Возвращаем собранные данные
+
+df = pd.DataFrame(data=parse())  # С помощью библиотеки pandas преобразуем словарь в DataFrame
+df.to_csv(FILE_NAME, index=False)  # Сохраняем DataFrame в CSV файл
+
+with open(FILE_NAME, encoding='utf-8') as r_file:  # Открываем наш файл, читаем его и выводим построчно
+    file_reader = csv.reader(r_file, delimiter=",")
+    for row in file_reader:
+        print(row)  # Выводим каждую строку файла
